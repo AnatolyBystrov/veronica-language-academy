@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Plus, Eye, MessageSquare, X, BookOpen, Trophy } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const StudentsView = ({ 
-  students, 
-  setStudents, 
-  showAddStudent, 
-  setShowAddStudent, 
-  selectedStudent, 
-  setSelectedStudent 
+const StudentsView = ({
+  showAddStudent,
+  setShowAddStudent,
+  selectedStudent,
+  setSelectedStudent
 }) => {
+  const [showNextLesson, setShowNextLesson] = useState(null);
+  const [students, setStudents] = useState([]);
   const [newStudent, setNewStudent] = useState({
     name: '',
     age: '',
@@ -21,33 +23,48 @@ const StudentsView = ({
 
   const avatarOptions = ['👧', '👦', '🧒', '👨', '👩', '🎓', '📚', '✨'];
 
-  const handleAddStudent = () => {
-    if (newStudent.name && newStudent.age && newStudent.email) {
-      const student = {
-        id: Date.now(),
-        name: newStudent.name,
-        age: parseInt(newStudent.age),
-        level: newStudent.level,
-        language: newStudent.language,
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
+  const fetchStudents = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/students');
+       console.log('📦 Получены студенты:', res.data); // ← сюда смотри
+      setStudents(res.data);
+    } catch (err) {
+      console.error('Failed to fetch students:', err);
+    }
+  };
+
+  const generateParentCode = (name) => {
+  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const numbers = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `${initials}${numbers}`;
+};
+
+
+  const handleAddStudent = async () => {
+  if (newStudent.name && newStudent.age && newStudent.email) {
+    try {
+      const fullStudent = {
+        ...newStudent,
+        id: Date.now().toString(),
         progress: 0,
         lessonsCount: 0,
         homeworkPending: 0,
         parentCode: generateParentCode(newStudent.name),
-        avatar: newStudent.avatar,
         recentActivity: 'Just enrolled',
         nextLesson: 'To be scheduled',
-        email: newStudent.email,
-        phone: newStudent.phone,
+        nextLessonTopic: 'Introduction to Greetings',
         lessonHistory: [],
         homework: [],
         documents: [],
         joinDate: new Date().toISOString().split('T')[0]
       };
 
-      const updatedStudents = [...students, student];
-      setStudents(updatedStudents);
-      localStorage.setItem('students', JSON.stringify(updatedStudents));
-      
+      const res = await axios.post('http://localhost:8000/students', fullStudent);
+      setStudents(prev => [...prev, res.data]);
       setNewStudent({
         name: '',
         age: '',
@@ -58,39 +75,38 @@ const StudentsView = ({
         avatar: '👤'
       });
       setShowAddStudent(false);
-      
-      alert(`🎉 ${student.name} added successfully!\nParent Code: ${student.parentCode}`);
-    } else {
-      alert('Please fill in all required fields: Name, Age, and Email');
+      alert(`🎉 ${res.data.name} added successfully!\nParent Code: ${res.data.parentCode}`);
+    } catch (err) {
+      console.error('Error adding student:', err);
     }
-  };
+  } else {
+    alert('Please fill in all required fields: Name, Age, and Email');
+  }
+};
 
-  const generateParentCode = (name) => {
-    const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
-    const numbers = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `${initials}${numbers}`;
-  };
 
-  const handleDeleteStudent = (studentId) => {
+  const handleDeleteStudent = async (studentId) => {
     if (window.confirm('Are you sure you want to delete this student?')) {
-      const updatedStudents = students.filter(s => s.id !== studentId);
-      setStudents(updatedStudents);
-      localStorage.setItem('students', JSON.stringify(updatedStudents));
+      try {
+        await axios.delete(`http://localhost:8000/students/${studentId}`);
+        setStudents(students.filter(s => s.id !== studentId));
+      } catch (err) {
+        console.error('Error deleting student:', err);
+      }
     }
   };
-
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header Section */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: '3rem'
       }}>
         <div>
-          <h1 style={{ 
-            fontSize: '3rem', 
+          <h1 style={{
+            fontSize: '3rem',
             fontWeight: 'bold',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             WebkitBackgroundClip: 'text',
@@ -100,17 +116,17 @@ const StudentsView = ({
           }}>
             My Students
           </h1>
-          <p style={{ 
-            color: '#64748b', 
-            fontSize: '1.2rem', 
+          <p style={{
+            color: '#64748b',
+            fontSize: '1.2rem',
             margin: 0,
             fontWeight: '500'
           }}>
             Manage and track your students' progress
           </p>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowAddStudent(true)}
           style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -165,22 +181,22 @@ const StudentsView = ({
           }}>
             <BookOpen size={60} color="white" />
           </div>
-          <h3 style={{ 
-            fontSize: '2rem', 
-            fontWeight: 'bold', 
+          <h3 style={{
+            fontSize: '2rem',
+            fontWeight: 'bold',
             marginBottom: '1rem',
             color: '#1e293b'
           }}>
             No students yet
           </h3>
-          <p style={{ 
-            color: '#64748b', 
-            fontSize: '1.2rem', 
+          <p style={{
+            color: '#64748b',
+            fontSize: '1.2rem',
             marginBottom: '2rem'
           }}>
             Add your first student to get started on this amazing journey!
           </p>
-          <button 
+          <button
             onClick={() => setShowAddStudent(true)}
             style={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -198,14 +214,14 @@ const StudentsView = ({
           </button>
         </div>
       ) : (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
-          gap: '2rem' 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gap: '2rem'
         }}>
           {students.map(student => (
-            <div 
-              key={student.id} 
+            <div
+              key={student.id}
               style={{
                 background: 'white',
                 borderRadius: '24px',
@@ -240,7 +256,7 @@ const StudentsView = ({
               }}></div>
 
               {/* Delete Button */}
-              <button 
+              <button
                 onClick={() => handleDeleteStudent(student.id)}
                 style={{
                   position: 'absolute',
@@ -290,9 +306,9 @@ const StudentsView = ({
                   }}>
                     {student.avatar}
                   </div>
-                  <h3 style={{ 
-                    fontSize: '1.5rem', 
-                    fontWeight: 'bold', 
+                  <h3 style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold',
                     marginBottom: '0.5rem',
                     color: '#1e293b'
                   }}>
@@ -326,21 +342,21 @@ const StudentsView = ({
 
                 {/* Progress Section */}
                 <div style={{ marginBottom: '2rem' }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    marginBottom: '0.75rem' 
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '0.75rem'
                   }}>
-                    <span style={{ 
-                      fontSize: '0.9rem', 
-                      fontWeight: '600', 
-                      color: '#374151' 
+                    <span style={{
+                      fontSize: '0.9rem',
+                      fontWeight: '600',
+                      color: '#374151'
                     }}>
                       Learning Progress
                     </span>
-                    <span style={{ 
-                      fontSize: '0.9rem', 
-                      fontWeight: 'bold', 
+                    <span style={{
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold',
                       color: '#667eea'
                     }}>
                       {student.progress}%
@@ -362,13 +378,13 @@ const StudentsView = ({
                     }}></div>
                   </div>
                 </div>
-                
+
                 {/* Stats Grid */}
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr', 
-                  gap: '1rem', 
-                  marginBottom: '2rem' 
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '1rem',
+                  marginBottom: '2rem'
                 }}>
                   <div style={{
                     background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
@@ -378,9 +394,9 @@ const StudentsView = ({
                     border: '1px solid #93c5fd'
                   }}>
                     <BookOpen size={20} color="#1e40af" style={{ margin: '0 auto 0.5rem' }} />
-                    <div style={{ 
-                      fontSize: '1.5rem', 
-                      fontWeight: 'bold', 
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
                       color: '#1e40af',
                       marginBottom: '0.25rem'
                     }}>
@@ -398,9 +414,9 @@ const StudentsView = ({
                     border: '1px solid #fb923c'
                   }}>
                     <Trophy size={20} color="#ea580c" style={{ margin: '0 auto 0.5rem' }} />
-                    <div style={{ 
-                      fontSize: '1.5rem', 
-                      fontWeight: 'bold', 
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
                       color: '#ea580c',
                       marginBottom: '0.25rem'
                     }}>
@@ -420,9 +436,9 @@ const StudentsView = ({
                   marginBottom: '2rem',
                   border: '1px solid #e2e8f0'
                 }}>
-                  <div style={{ 
-                    fontSize: '0.75rem', 
-                    color: '#64748b', 
+                  <div style={{
+                    fontSize: '0.75rem',
+                    color: '#64748b',
                     marginBottom: '0.5rem',
                     fontWeight: '600'
                   }}>
@@ -442,10 +458,10 @@ const StudentsView = ({
                     {student.parentCode}
                   </div>
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <button 
+                  <button
                     onClick={() => setSelectedStudent(student)}
                     style={{
                       flex: 1,
@@ -475,35 +491,37 @@ const StudentsView = ({
                     <Eye size={16} />
                     View
                   </button>
-                  <button 
-                    style={{
-                      flex: 1,
-                      background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-                      color: '#1e293b',
-                      border: 'none',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '12px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.3s ease',
-                      boxShadow: '0 4px 15px rgba(168, 237, 234, 0.3)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.boxShadow = '0 8px 25px rgba(168, 237, 234, 0.4)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.boxShadow = '0 4px 15px rgba(168, 237, 234, 0.3)';
-                    }}
-                  >
-                    <MessageSquare size={16} />
-                    Lesson
-                  </button>
+                  <button
+  onClick={() => setShowNextLesson(student)}
+  style={{
+    flex: 1,
+    background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    color: '#1e293b',
+    border: 'none',
+    padding: '0.75rem 1rem',
+    borderRadius: '12px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '0.5rem',
+    transition: 'all 0.3s ease',
+    boxShadow: '0 4px 15px rgba(168, 237, 234, 0.3)'
+  }}
+  onMouseEnter={(e) => {
+    e.target.style.transform = 'translateY(-2px)';
+    e.target.style.boxShadow = '0 8px 25px rgba(168, 237, 234, 0.4)';
+  }}
+  onMouseLeave={(e) => {
+    e.target.style.transform = 'translateY(0)';
+    e.target.style.boxShadow = '0 4px 15px rgba(168, 237, 234, 0.3)';
+  }}
+>
+  <MessageSquare size={16} />
+  Lesson
+</button>
+
                 </div>
               </div>
             </div>
@@ -536,36 +554,87 @@ const StudentsView = ({
             overflow: 'auto',
             boxShadow: '0 25px 50px rgba(0,0,0,0.3)'
           }}>
+            {/* Show Next Lesson Modal */}
+            {showNextLesson && (
+              <div style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: 'rgba(0,0,0,0.7)',
+                backdropFilter: 'blur(6px)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 1000
+              }}>
+                <div style={{
+                  background: 'white',
+                  borderRadius: '24px',
+                  padding: '2rem',
+                  width: '90%',
+                  maxWidth: '500px',
+                  boxShadow: '0 25px 50px rgba(0,0,0,0.3)',
+                  textAlign: 'center'
+                }}>
+                  <h2 style={{ fontSize: '1.8rem', fontWeight: 'bold', marginBottom: '1rem' }}>
+                    📘 Next Lesson
+                  </h2>
+                  <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                    <strong>Scheduled for:</strong> {showNextLesson.nextLesson}
+                  </p>
+                  <p style={{ fontSize: '1.1rem', marginBottom: '1.5rem' }}>
+                    <strong>Topic:</strong> {showNextLesson.nextLessonTopic}
+                  </p>
+                  <button
+                    onClick={() => setShowNextLesson(null)}
+                    style={{
+                      background: '#667eea',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Modal Header */}
             <div style={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               padding: '2rem',
               borderRadius: '24px 24px 0 0'
             }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center' 
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
               }}>
                 <div>
-                  <h3 style={{ 
-                    color: 'white', 
-                    fontSize: '2rem', 
-                    fontWeight: 'bold', 
+                  <h3 style={{
+                    color: 'white',
+                    fontSize: '2rem',
+                    fontWeight: 'bold',
                     margin: 0,
                     marginBottom: '0.5rem'
                   }}>
                     Add New Student
                   </h3>
-                  <p style={{ 
-                    color: 'rgba(255,255,255,0.8)', 
+                  <p style={{
+                    color: 'rgba(255,255,255,0.8)',
                     margin: 0,
                     fontSize: '1.1rem'
                   }}>
                     Create a new student profile
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowAddStudent(false)}
                   style={{
                     background: 'rgba(255,255,255,0.2)',
@@ -598,20 +667,20 @@ const StudentsView = ({
                 {/* Name & Age Row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontWeight: '600', 
+                    <label style={{
+                      display: 'block',
+                      fontWeight: '600',
                       marginBottom: '0.75rem',
                       color: '#374151',
                       fontSize: '0.95rem'
                     }}>
                       Student Name *
                     </label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={newStudent.name}
-                      onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
-                      placeholder="Enter full name" 
+                      onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                      placeholder="Enter full name"
                       style={{
                         width: '100%',
                         padding: '1rem',
@@ -633,20 +702,20 @@ const StudentsView = ({
                   </div>
 
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontWeight: '600', 
+                    <label style={{
+                      display: 'block',
+                      fontWeight: '600',
                       marginBottom: '0.75rem',
                       color: '#374151',
                       fontSize: '0.95rem'
                     }}>
                       Age *
                     </label>
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       value={newStudent.age}
-                      onChange={(e) => setNewStudent({...newStudent, age: e.target.value})}
-                      placeholder="Age" 
+                      onChange={(e) => setNewStudent({ ...newStudent, age: e.target.value })}
+                      placeholder="Age"
                       min="3"
                       max="100"
                       style={{
@@ -664,18 +733,18 @@ const StudentsView = ({
                 {/* Level & Language Row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontWeight: '600', 
+                    <label style={{
+                      display: 'block',
+                      fontWeight: '600',
                       marginBottom: '0.75rem',
                       color: '#374151',
                       fontSize: '0.95rem'
                     }}>
                       Level
                     </label>
-                    <select 
+                    <select
                       value={newStudent.level}
-                      onChange={(e) => setNewStudent({...newStudent, level: e.target.value})}
+                      onChange={(e) => setNewStudent({ ...newStudent, level: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '1rem',
@@ -695,18 +764,18 @@ const StudentsView = ({
                   </div>
 
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontWeight: '600', 
+                    <label style={{
+                      display: 'block',
+                      fontWeight: '600',
                       marginBottom: '0.75rem',
                       color: '#374151',
                       fontSize: '0.95rem'
                     }}>
                       Language
                     </label>
-                    <select 
+                    <select
                       value={newStudent.language}
-                      onChange={(e) => setNewStudent({...newStudent, language: e.target.value})}
+                      onChange={(e) => setNewStudent({ ...newStudent, language: e.target.value })}
                       style={{
                         width: '100%',
                         padding: '1rem',
@@ -728,20 +797,20 @@ const StudentsView = ({
                 {/* Contact Info */}
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1rem' }}>
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontWeight: '600', 
+                    <label style={{
+                      display: 'block',
+                      fontWeight: '600',
                       marginBottom: '0.75rem',
                       color: '#374151',
                       fontSize: '0.95rem'
                     }}>
                       Parent Email *
                     </label>
-                    <input 
-                      type="email" 
+                    <input
+                      type="email"
                       value={newStudent.email}
-                      onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
-                      placeholder="parent@example.com" 
+                      onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                      placeholder="parent@example.com"
                       style={{
                         width: '100%',
                         padding: '1rem',
@@ -754,20 +823,20 @@ const StudentsView = ({
                   </div>
 
                   <div>
-                    <label style={{ 
-                      display: 'block', 
-                      fontWeight: '600', 
+                    <label style={{
+                      display: 'block',
+                      fontWeight: '600',
                       marginBottom: '0.75rem',
                       color: '#374151',
                       fontSize: '0.95rem'
                     }}>
                       Phone Number
                     </label>
-                    <input 
-                      type="tel" 
+                    <input
+                      type="tel"
                       value={newStudent.phone}
-                      onChange={(e) => setNewStudent({...newStudent, phone: e.target.value})}
-                      placeholder="+972-50-123-4567" 
+                      onChange={(e) => setNewStudent({ ...newStudent, phone: e.target.value })}
+                      placeholder="+972-50-123-4567"
                       style={{
                         width: '100%',
                         padding: '1rem',
@@ -782,9 +851,9 @@ const StudentsView = ({
 
                 {/* Avatar Selection */}
                 <div>
-                  <label style={{ 
-                    display: 'block', 
-                    fontWeight: '600', 
+                  <label style={{
+                    display: 'block',
+                    fontWeight: '600',
                     marginBottom: '1rem',
                     color: '#374151',
                     fontSize: '0.95rem'
@@ -795,7 +864,7 @@ const StudentsView = ({
                     {avatarOptions.map(avatar => (
                       <button
                         key={avatar}
-                        onClick={() => setNewStudent({...newStudent, avatar})}
+                        onClick={() => setNewStudent({ ...newStudent, avatar })}
                         style={{
                           width: '60px',
                           height: '60px',
@@ -831,14 +900,14 @@ const StudentsView = ({
                 </div>
 
                 {/* Action Buttons */}
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '1rem', 
-                  marginTop: '2rem', 
+                <div style={{
+                  display: 'flex',
+                  gap: '1rem',
+                  marginTop: '2rem',
                   paddingTop: '2rem',
                   borderTop: '1px solid #e5e7eb'
                 }}>
-                  <button 
+                  <button
                     onClick={() => setShowAddStudent(false)}
                     style={{
                       flex: 1,
@@ -862,7 +931,7 @@ const StudentsView = ({
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={handleAddStudent}
                     style={{
                       flex: 2,

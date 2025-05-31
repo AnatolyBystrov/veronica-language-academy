@@ -299,6 +299,79 @@ const AdminDashboard = () => {
         backgroundColor: '#f8fafc'
       }}>
         {renderCurrentView()}
+        {selectedStudent && (
+          <div style={{
+            position: 'fixed',
+            top: '10%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
+            padding: '2rem',
+            borderRadius: '24px',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.1)',
+            zIndex: 2000,
+            minWidth: '400px',
+            maxWidth: '90%',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{
+                width: '80px',
+                height: '80px',
+                margin: '0 auto 1rem',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2.5rem',
+                boxShadow: '0 8px 25px rgba(102, 126, 234, 0.3)',
+              }}>
+                {selectedStudent.avatar}
+              </div>
+              <h2 style={{ fontSize: '1.8rem', color: '#1e293b', fontWeight: '700', marginBottom: '0.25rem' }}>
+                {selectedStudent.name}
+              </h2>
+              <p style={{ color: '#64748b', fontWeight: '500', fontSize: '1rem' }}>
+                Level: {selectedStudent.level} — {selectedStudent.age} y/o
+              </p>
+            </div>
+
+            <div style={{ fontSize: '0.95rem', color: '#334155', marginBottom: '1rem' }}>
+              <p><strong>Email:</strong> {selectedStudent.email}</p>
+              <p><strong>Progress:</strong> {selectedStudent.progress}%</p>
+              <p><strong>Lessons:</strong> {selectedStudent.lessonsCount}</p>
+              <p><strong>Homework:</strong> {selectedStudent.homeworkPending}</p>
+              <p><strong>Parent Code:</strong> {selectedStudent.parentCode}</p>
+            </div>
+
+            <button
+              onClick={() => setSelectedStudent(null)}
+              style={{
+                marginTop: '1rem',
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+              }}
+            >
+              Close
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );
